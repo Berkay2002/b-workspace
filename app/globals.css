@@ -1,0 +1,147 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --transition-duration: 300ms;
+    --transition-ease: ease-in-out;
+
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+
+    --primary: 0 0% 0%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 0%;
+
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 0%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 92%;
+    --input: 0 0% 92%;
+    --ring: 0 0% 0%;
+
+    --radius: 0.5rem;
+
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+  }
+
+  .dark {
+    /* Flipped these two to achieve Notion-like layout */
+    --background: 0 0% 10%; /* #1a1a1a - main content area (darker) */
+    --card: 0 0% 12%;       /* #1f1f1f - sidebar/cards (lighter) */
+
+    --foreground: 0 0% 100%;
+
+    --card-foreground: 0 0% 100%;
+    --popover: 220 6% 13%;
+    --popover-foreground: 0 0% 100%;
+
+    --primary: 0 0% 100%;
+    --primary-foreground: 220 8% 10%;
+
+    --secondary: 220 5% 18%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 220 4% 16%;
+    --muted-foreground: 0 0% 60%;
+
+    --accent: 220 5% 22%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 4% 25%;
+    --input: 220 5% 18%;
+    --ring: 220 6% 60%;
+
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+
+  html,
+  body {
+    @apply bg-background text-foreground;
+    transition:
+      background-color var(--transition-duration) var(--transition-ease),
+      border-color var(--transition-duration) var(--transition-ease);
+  }
+
+  * {
+    @apply border-border;
+    transition:
+      background-color var(--transition-duration) var(--transition-ease),
+      border-color var(--transition-duration) var(--transition-ease),
+      fill var(--transition-duration) var(--transition-ease),
+      stroke var(--transition-duration) var(--transition-ease);
+  }
+
+  *:not(svg):not(path) {
+    transition-property: background-color, border-color, fill, stroke !important;
+  }
+
+  [data-placeholder]:empty::before {
+    content: attr(data-placeholder);
+    @apply text-muted-foreground;
+    pointer-events: none;
+    position: absolute;
+  }
+
+  /* Custom scrollbar styles */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-muted/50;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30;
+    border-radius: 4px;
+    transition: background-color var(--transition-duration) var(--transition-ease);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+  }
+
+  /* For Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.3) hsl(var(--muted) / 0.5);
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

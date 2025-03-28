@@ -1,0 +1,41 @@
+{
+  "name": "Planning Page",
+  "description": "Track items with statuses and deadlines",
+  "tags": ["Productivity", "Table", "Template"],
+  "type": "blank-page-template",
+  "icon": "✅",
+  "blocks": [
+    {
+      "id": "title",
+      "type": "heading",
+      "content": "Planning Page",
+      "level": 1
+    },
+    {
+      "id": "description",
+      "type": "paragraph",
+      "content": "Use this page to track your tasks, projects, and ideas."
+    },
+    {
+      "id": "table",
+      "type": "table",
+      "content": [
+        {
+          "status": "Not Started",
+          "item": "Example Task 1",
+          "dueDate": "2024-03-20"
+        },
+        {
+          "status": "In Progress",
+          "item": "Example Task 2",
+          "dueDate": "2024-03-21"
+        },
+        {
+          "status": "Done",
+          "item": "Example Task 3",
+          "dueDate": "2024-03-19"
+        }
+      ]
+    }
+  ]
+} 
