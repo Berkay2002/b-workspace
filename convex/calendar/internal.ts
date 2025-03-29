@@ -1,17 +1,5 @@
 import { v } from "convex/values";
 import { mutation, query } from "../_generated/server";
-import { Id } from "../_generated/dataModel";
-
-interface CalendarEvent {
-  calendarId: Id<"calendars">;
-  title: string;
-  description?: string;
-  startTime: number;
-  endTime: number;
-  location?: string;
-  url?: string;
-  lastSynced: number;
-}
 
 export const addCalendar = mutation({
   args: {
@@ -43,13 +31,13 @@ export const addEvents = mutation({
         endTime: v.number(),
         location: v.optional(v.string()),
         url: v.optional(v.string()),
-        lastSynced: v.number(),
+        userId: v.string(),
       })
     ),
   },
   handler: async (ctx, args) => {
     await Promise.all(
-      args.events.map((event: CalendarEvent) => ctx.db.insert("events", event))
+      args.events.map((event) => ctx.db.insert("events", event))
     );
   },
 });
@@ -75,7 +63,7 @@ export const syncEvents = mutation({
         endTime: v.number(),
         location: v.optional(v.string()),
         url: v.optional(v.string()),
-        lastSynced: v.number(),
+        userId: v.string(),
       })
     ),
     lastSynced: v.number(),
@@ -93,7 +81,7 @@ export const syncEvents = mutation({
 
     // Store new events
     await Promise.all(
-      args.events.map((event: CalendarEvent) => ctx.db.insert("events", event))
+      args.events.map((event) => ctx.db.insert("events", event))
     );
 
     // Update last synced time

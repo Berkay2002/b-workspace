@@ -33,15 +33,15 @@ export default defineSchema({
     color: v.optional(v.string()),
   }).index("by_user", ["userId"]),
   events: defineTable({
-    calendarId: v.id("calendars"),
     title: v.string(),
     description: v.optional(v.string()),
-    startTime: v.number(),
-    endTime: v.number(),
     location: v.optional(v.string()),
     url: v.optional(v.string()),
-    lastSynced: v.number(),
-  }).index("by_calendar", ["calendarId"]),
+    startTime: v.number(),
+    endTime: v.number(),
+    calendarId: v.optional(v.id("calendars")),
+    userId: v.string(),
+  }).index("by_user", ["userId"]).index("by_calendar", ["calendarId"]),
   blocks: defineTable({
     pageId: v.id("pages"),
     type: v.string(), // heading, paragraph, checklist, table, gallery, image, bullet-list

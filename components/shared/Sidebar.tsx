@@ -23,6 +23,7 @@ import {
   Trash,
   Users,
   Plus,
+  Calendar,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -89,6 +90,7 @@ export function Sidebar({ className }: SidebarProps) {
             </button>
             <SidebarLink href="/ai" icon={Sparkles} label="Workspace AI" pathname={pathname} />
             <SidebarLink href="/" icon={Home} label="Home" pathname={pathname} />
+            <SidebarLink href="/calendar" icon={Calendar} label="Calendar" pathname={pathname} />
             <button
               onClick={toggleInbox}
               className="flex items-center gap-x-2 rounded-lg px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"

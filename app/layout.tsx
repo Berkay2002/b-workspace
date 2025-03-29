@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { SearchProvider } from "@/components/search/SearchProvider";
 import { ConvexProvider } from "@/components/providers/ConvexProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -23,9 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <div className="flex min-h-screen bg-background text-foreground transition-colors duration-300 ease-in-out">
                   {/* Sidebar is fixed, content starts immediately after */}
                   <main className="flex-1 md:pl-56">
-                    <div className="w-full px-6 lg:px-12 xl:px-20">
-                      {children}
-                    </div>
+                    {children}
                   </main>
                 </div>
               </SearchProvider>

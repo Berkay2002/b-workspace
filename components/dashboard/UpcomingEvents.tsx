@@ -2,7 +2,7 @@
 
 import { Calendar, Clock, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { useQuery, useAction } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Doc } from "@/convex/_generated/dataModel";
+import { useCalendarActions } from "@/lib/utils/parseIcal";
 
 interface EventWithCalendar extends Doc<"events"> {
   calendarName: string;
@@ -21,8 +22,10 @@ export function UpcomingEvents() {
   const [newCalendarName, setNewCalendarName] = useState("");
   const [newCalendarUrl, setNewCalendarUrl] = useState("");
 
-  const events = useQuery(api.calendar.queries.getUpcomingEvents, { limit: 5 });
-  const addCalendar = useAction(api.calendar.actions.addCalendar);
+  const events = useQuery(api.calendar.queries.getUpcomingEvents, { 
+    limit: 5
+  });
+  const { addCalendar } = useCalendarActions();
 
   const handleAddCalendar = async () => {
     if (!newCalendarName || !newCalendarUrl) return;

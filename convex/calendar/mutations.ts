@@ -6,39 +6,47 @@ export const addCalendar = mutation({
     name: v.string(),
     icalUrl: v.string(),
     userId: v.string(),
-    lastSynced: v.number(),
     color: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("calendars", {
+    const calendarId = await ctx.db.insert("calendars", {
       name: args.name,
       icalUrl: args.icalUrl,
       userId: args.userId,
-      lastSynced: args.lastSynced,
+      lastSynced: Date.now(),
       color: args.color,
     });
+
+    return calendarId;
   },
 });
 
 export const addEvents = mutation({
   args: {
+    calendarId: v.id("calendars"),
     events: v.array(
       v.object({
-        calendarId: v.id("calendars"),
         title: v.string(),
         description: v.optional(v.string()),
         startTime: v.number(),
         endTime: v.number(),
         location: v.optional(v.string()),
         url: v.optional(v.string()),
-        lastSynced: v.number(),
+        userId: v.string(),
       })
     ),
   },
   handler: async (ctx, args) => {
-    await Promise.all(
-      args.events.map((event) => ctx.db.insert("events", event))
+    const eventIds = await Promise.all(
+      args.events.map((event) =>
+        ctx.db.insert("events", {
+          ...event,
+          calendarId: args.calendarId,
+        })
+      )
     );
+
+    return eventIds;
   },
 });
 
@@ -47,37 +55,41 @@ export const syncEvents = mutation({
     calendarId: v.id("calendars"),
     events: v.array(
       v.object({
-        calendarId: v.id("calendars"),
         title: v.string(),
         description: v.optional(v.string()),
         startTime: v.number(),
         endTime: v.number(),
         location: v.optional(v.string()),
         url: v.optional(v.string()),
-        lastSynced: v.number(),
+        userId: v.string(),
       })
     ),
-    lastSynced: v.number(),
   },
   handler: async (ctx, args) => {
     // Delete old events
-    const oldEvents = await ctx.db
+    await ctx.db
       .query("events")
-      .withIndex("by_calendar", (q) => q.eq("calendarId", args.calendarId))
-      .collect();
+      .filter((q) => q.eq(q.field("calendarId"), args.calendarId))
+      .collect()
+      .then((events) =>
+        Promise.all(events.map((event) => ctx.db.delete(event._id)))
+      );
 
-    await Promise.all(
-      oldEvents.map((event) => ctx.db.delete(event._id))
-    );
-
-    // Store new events
-    await Promise.all(
-      args.events.map((event) => ctx.db.insert("events", event))
+    // Add new events
+    const eventIds = await Promise.all(
+      args.events.map((event) =>
+        ctx.db.insert("events", {
+          ...event,
+          calendarId: args.calendarId,
+        })
+      )
     );
 
     // Update last synced time
     await ctx.db.patch(args.calendarId, {
-      lastSynced: args.lastSynced,
+      lastSynced: Date.now(),
     });
+
+    return eventIds;
   },
 }); 

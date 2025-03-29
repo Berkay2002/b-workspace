@@ -14,11 +14,13 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto">
-        {children}
-      </main>
+    <div className="px-6 lg:px-12 xl:px-20">
+      <div className="flex min-h-screen">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
