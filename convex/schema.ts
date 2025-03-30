@@ -39,8 +39,9 @@ export default defineSchema({
     url: v.optional(v.string()),
     startTime: v.number(),
     endTime: v.number(),
-    calendarId: v.optional(v.id("calendars")),
+    calendarId: v.id("calendars"), // Make this required since all events should belong to a calendar
     userId: v.string(),
+    lastSynced: v.optional(v.number()), // Optional since manually created events won't have this
   }).index("by_user", ["userId"]).index("by_calendar", ["calendarId"]),
   blocks: defineTable({
     pageId: v.id("pages"),

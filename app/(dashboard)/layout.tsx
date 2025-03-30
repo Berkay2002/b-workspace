@@ -14,13 +14,15 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="px-6 lg:px-12 xl:px-20">
-      <div className="flex min-h-screen">
+    <div className="min-h-screen">
+      {/* Always show sidebar on desktop, but hidden on mobile */}
+      <div className="hidden md:block">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto">
-          {children}
-        </main>
       </div>
+      {/* Main content - full width on mobile, adjusted for sidebar on desktop */}
+      <main className="h-full">
+        {children}
+      </main>
     </div>
   );
 }

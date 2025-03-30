@@ -28,9 +28,10 @@ import {
 
 interface SidebarProps {
   className?: string;
+  onClickItem?: () => void; // Callback for mobile to close sidebar when an item is clicked
 }
 
-export function Sidebar({ className }: SidebarProps) {
+export function Sidebar({ className, onClickItem }: SidebarProps) {
   const pathname = usePathname();
   const { user } = useUser();
   const { listPages, createPage } = useConvex();
@@ -38,9 +39,23 @@ export function Sidebar({ className }: SidebarProps) {
   const { toggle: toggleInbox } = useInbox();
   const { setOpen: setSearchOpen } = useSearch();
   const [isMac, setIsMac] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     setIsMac(navigator.platform.toUpperCase().indexOf('MAC') >= 0);
+  }, []);
+
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkIsMobile);
+    };
   }, []);
 
   const pages = listPages ?? [];
@@ -55,17 +70,30 @@ export function Sidebar({ className }: SidebarProps) {
     try {
       const pageId = await createPage({ title: "Untitled", userId: user.id });
       if (pageId) createDocument(pageId);
+      if (onClickItem) onClickItem();
     } catch (err) {
       console.error("Failed to create page:", err);
     }
+  };
+
+  const handleSearchClick = () => {
+    setSearchOpen(true);
+    if (onClickItem) onClickItem();
+  };
+
+  const handleInboxClick = () => {
+    toggleInbox();
+    if (onClickItem) onClickItem();
   };
 
   return (
     <>
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-20 w-56 flex flex-col gap-y-4 bg-card text-foreground px-2 py-3",
+          "inset-y-0 left-0 z-20 flex flex-col gap-y-4 bg-card text-foreground px-2 py-3",
           "border-r border-border",
+          "w-56",
+          isMobile ? "" : "fixed",
           className
         )}
       >
@@ -79,20 +107,40 @@ export function Sidebar({ className }: SidebarProps) {
         <nav className="flex flex-1 flex-col gap-y-2">
           <div className="flex flex-col gap-y-1">
             <button
-              onClick={() => setSearchOpen(true)}
+              onClick={handleSearchClick}
               className="flex items-center gap-x-2 rounded-lg px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
             >
               <Search className="h-4 w-4" />
               Search
-              <kbd className="pointer-events-none ml-auto inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-                <span className="text-xs">{isMac ? '⌘' : 'Ctrl'}</span>K
-              </kbd>
+              {!isMobile && (
+                <kbd className="pointer-events-none ml-auto inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+                  <span className="text-xs">{isMac ? '⌘' : 'Ctrl'}</span>K
+                </kbd>
+              )}
             </button>
-            <SidebarLink href="/ai" icon={Sparkles} label="Workspace AI" pathname={pathname} />
-            <SidebarLink href="/" icon={Home} label="Home" pathname={pathname} />
-            <SidebarLink href="/calendar" icon={Calendar} label="Calendar" pathname={pathname} />
+            <SidebarLink 
+              href="/ai" 
+              icon={Sparkles} 
+              label="Workspace AI" 
+              pathname={pathname} 
+              onClick={onClickItem}
+            />
+            <SidebarLink 
+              href="/" 
+              icon={Home} 
+              label="Home" 
+              pathname={pathname} 
+              onClick={onClickItem}
+            />
+            <SidebarLink 
+              href="/calendar" 
+              icon={Calendar} 
+              label="Calendar" 
+              pathname={pathname} 
+              onClick={onClickItem}
+            />
             <button
-              onClick={toggleInbox}
+              onClick={handleInboxClick}
               className="flex items-center gap-x-2 rounded-lg px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
             >
               <Inbox className="h-4 w-4" />
@@ -119,14 +167,33 @@ export function Sidebar({ className }: SidebarProps) {
                   icon={FileText}
                   label={page.title}
                   pathname={pathname}
+                  onClick={onClickItem}
                 />
               ))}
             </div>
 
             <div className="mt-2 flex flex-col gap-y-1">
-              <SidebarLink href="/settings" icon={Settings} label="Settings" pathname={pathname} />
-              <SidebarLink href="/marketplace" icon={LayoutTemplate} label="Templates" pathname={pathname} />
-              <SidebarLink href="/trash" icon={Trash} label="Trash" pathname={pathname} />
+              <SidebarLink 
+                href="/settings" 
+                icon={Settings} 
+                label="Settings" 
+                pathname={pathname} 
+                onClick={onClickItem}
+              />
+              <SidebarLink 
+                href="/marketplace" 
+                icon={LayoutTemplate} 
+                label="Templates" 
+                pathname={pathname} 
+                onClick={onClickItem}
+              />
+              <SidebarLink 
+                href="/trash" 
+                icon={Trash} 
+                label="Trash" 
+                pathname={pathname} 
+                onClick={onClickItem}
+              />
             </div>
           </div>
 
@@ -149,11 +216,13 @@ function SidebarLink({
   icon: Icon,
   label,
   pathname,
+  onClick,
 }: {
   href: string;
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   label: string;
   pathname: string;
+  onClick?: () => void;
 }) {
   const isActive = pathname === href;
 
@@ -165,6 +234,7 @@ function SidebarLink({
         "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
         isActive && "bg-accent text-accent-foreground"
       )}
+      onClick={onClick}
     >
       <Icon className="h-4 w-4" />
       {label}

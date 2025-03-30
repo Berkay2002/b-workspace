@@ -6,11 +6,8 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Doc } from "@/convex/_generated/dataModel";
-import { useCalendarActions } from "@/lib/utils/parseIcal";
+import { AddCalendarDialog } from "@/components/calendar/AddCalendarDialog";
 
 interface EventWithCalendar extends Doc<"events"> {
   calendarName: string;
@@ -19,29 +16,10 @@ interface EventWithCalendar extends Doc<"events"> {
 
 export function UpcomingEvents() {
   const [isAddingCalendar, setIsAddingCalendar] = useState(false);
-  const [newCalendarName, setNewCalendarName] = useState("");
-  const [newCalendarUrl, setNewCalendarUrl] = useState("");
 
   const events = useQuery(api.calendar.queries.getUpcomingEvents, { 
     limit: 5
   });
-  const { addCalendar } = useCalendarActions();
-
-  const handleAddCalendar = async () => {
-    if (!newCalendarName || !newCalendarUrl) return;
-
-    try {
-      await addCalendar({
-        name: newCalendarName,
-        icalUrl: newCalendarUrl,
-      });
-      setNewCalendarName("");
-      setNewCalendarUrl("");
-      setIsAddingCalendar(false);
-    } catch (error) {
-      console.error("Failed to add calendar:", error);
-    }
-  };
 
   // Format relative time
   const formatRelativeTime = (timestamp: number) => {
@@ -73,41 +51,17 @@ export function UpcomingEvents() {
       <div className="mb-8 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Upcoming Events</h2>
-          <Dialog open={isAddingCalendar} onOpenChange={setIsAddingCalendar}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
-                Add Calendar
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add Calendar</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Calendar Name</Label>
-                  <Input
-                    id="name"
-                    value={newCalendarName}
-                    onChange={(e) => setNewCalendarName(e.target.value)}
-                    placeholder="e.g., Work Calendar"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="url">iCal URL</Label>
-                  <Input
-                    id="url"
-                    value={newCalendarUrl}
-                    onChange={(e) => setNewCalendarUrl(e.target.value)}
-                    placeholder="https://..."
-                  />
-                </div>
-                <Button onClick={handleAddCalendar} className="w-full">
-                  Add Calendar
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setIsAddingCalendar(true)}
+          >
+            Add Calendar
+          </Button>
+          <AddCalendarDialog
+            open={isAddingCalendar}
+            onOpenChange={setIsAddingCalendar}
+          />
         </div>
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
@@ -124,41 +78,17 @@ export function UpcomingEvents() {
     <div className="mb-8 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Upcoming Events</h2>
-        <Dialog open={isAddingCalendar} onOpenChange={setIsAddingCalendar}>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="sm">
-              Add Calendar
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Calendar</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Calendar Name</Label>
-                <Input
-                  id="name"
-                  value={newCalendarName}
-                  onChange={(e) => setNewCalendarName(e.target.value)}
-                  placeholder="e.g., Work Calendar"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="url">iCal URL</Label>
-                <Input
-                  id="url"
-                  value={newCalendarUrl}
-                  onChange={(e) => setNewCalendarUrl(e.target.value)}
-                  placeholder="https://..."
-                />
-              </div>
-              <Button onClick={handleAddCalendar} className="w-full">
-                Add Calendar
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => setIsAddingCalendar(true)}
+        >
+          Add Calendar
+        </Button>
+        <AddCalendarDialog
+          open={isAddingCalendar}
+          onOpenChange={setIsAddingCalendar}
+        />
       </div>
       <div className="space-y-2">
         {events.map((event: EventWithCalendar) => (

@@ -3,62 +3,17 @@
 import { v } from "convex/values";
 import { action } from "../_generated/server";
 import { api } from "../_generated/api";
+import ical, { VEvent } from "node-ical";
 import { Id } from "../_generated/dataModel";
-import ical from "node-ical";
-import type { VEvent } from "node-ical";
 
-export interface CalendarEvent {
+interface EventInput {
   title: string;
   description?: string;
   startTime: number;
   endTime: number;
   location?: string;
   url?: string;
-  userId: string;
 }
-
-export const parseIcalUrl = action({
-  args: {
-    url: v.string(),
-    userId: v.string(),
-  },
-  handler: async (ctx, args): Promise<CalendarEvent[]> => {
-    const events = await ical.async.fromURL(args.url);
-    return Object.values(events)
-      .filter((event): event is VEvent => event.type === "VEVENT")
-      .map((event): CalendarEvent => ({
-        title: event.summary,
-        description: event.description,
-        startTime: event.start.getTime(),
-        endTime: event.end.getTime(),
-        location: event.location,
-        url: event.url,
-        userId: args.userId,
-      }));
-  },
-});
-
-export const parseIcalFile = action({
-  args: {
-    file: v.string(), // Base64 encoded file content
-    userId: v.string(),
-  },
-  handler: async (ctx, args): Promise<CalendarEvent[]> => {
-    const buffer = Buffer.from(args.file, 'base64');
-    const events = await ical.async.parseICS(buffer.toString());
-    return Object.values(events)
-      .filter((event): event is VEvent => event.type === "VEVENT")
-      .map((event): CalendarEvent => ({
-        title: event.summary,
-        description: event.description,
-        startTime: event.start.getTime(),
-        endTime: event.end.getTime(),
-        location: event.location,
-        url: event.url,
-        userId: args.userId,
-      }));
-  },
-});
 
 export const addCalendar = action({
   args: {
@@ -69,55 +24,54 @@ export const addCalendar = action({
   },
   handler: async (ctx, args): Promise<Id<"calendars">> => {
     // Create calendar
-    const calendarId = await ctx.runMutation(api.calendar.internal.addCalendar, {
+    const calendarId = await ctx.runMutation(api.calendar.mutations.addCalendar, {
       name: args.name,
       icalUrl: args.icalUrl,
       userId: args.userId,
-      lastSynced: Date.now(),
       color: args.color,
-    });
-
-    // Fetch and add events
-    const events = await ctx.runAction(api.calendar.actions.parseIcalUrl, {
-      url: args.icalUrl,
-      userId: args.userId,
-    });
-
-    await ctx.runMutation(api.calendar.internal.addEvents, {
-      events: events.map((event: CalendarEvent) => ({
-        ...event,
-        calendarId,
-      })),
     });
 
     return calendarId;
   },
 });
 
-export const syncCalendar = action({
+export const syncCalendarEvents = action({
   args: {
     calendarId: v.id("calendars"),
-    icalUrl: v.string(),
-    userId: v.string(),
   },
-  handler: async (ctx, args): Promise<Id<"calendars">> => {
-    // Fetch new events
-    const events = await ctx.runAction(api.calendar.actions.parseIcalUrl, {
-      url: args.icalUrl,
-      userId: args.userId,
-    });
-    
-    // Sync events
-    await ctx.runMutation(api.calendar.internal.syncEvents, {
+  handler: async (ctx, args): Promise<void> => {
+    // Get calendar and verify ownership
+    const calendar = await ctx.runQuery(api.calendar.queries.getCalendar, {
       calendarId: args.calendarId,
-      events: events.map((event: CalendarEvent) => ({
-        ...event,
-        calendarId: args.calendarId,
-      })),
-      lastSynced: Date.now(),
     });
 
-    return args.calendarId;
+    if (!calendar) {
+      throw new Error("Calendar not found");
+    }
+
+    if (!calendar.icalUrl) {
+      throw new Error("Calendar has no iCal URL");
+    }
+
+    // Fetch and parse events
+    const events = await ical.fromURL(calendar.icalUrl);
+    const parsedEvents: EventInput[] = Object.values(events)
+      .filter((event): event is VEvent => event.type === "VEVENT")
+      .map((event) => ({
+        title: event.summary || "Untitled Event",
+        description: event.description,
+        startTime: event.start.getTime(),
+        endTime: event.end.getTime(),
+        location: event.location,
+        url: event.url,
+      }));
+
+    // Sync events
+    await ctx.runMutation(api.calendar.mutations.syncEvents, {
+      calendarId: args.calendarId,
+      events: parsedEvents,
+      userId: calendar.userId,
+    });
   },
 });
 
@@ -146,9 +100,14 @@ export const addEvent = action({
     return await ctx.runMutation(api.calendar.mutations.addEvents, {
       calendarId: args.calendarId ?? defaultCalendarId,
       events: [{
-        ...args,
-        userId: identity.subject,
+        title: args.title,
+        description: args.description,
+        startTime: args.startTime,
+        endTime: args.endTime,
+        location: args.location,
+        url: args.url,
       }],
+      userId: identity.subject,
     });
   },
 });
@@ -179,18 +138,17 @@ export const updateEvent = action({
       throw new Error("Event has no calendar");
     }
 
-    const { title, description, location, url, startTime, endTime } = args;
     return await ctx.runMutation(api.calendar.mutations.syncEvents, {
       calendarId: event.calendarId,
       events: [{
-        title: title ?? event.title,
-        description: description ?? event.description,
-        location: location ?? event.location,
-        url: url ?? event.url,
-        startTime: startTime ?? event.startTime,
-        endTime: endTime ?? event.endTime,
-        userId: identity.subject,
+        title: args.title ?? event.title,
+        description: args.description ?? event.description,
+        location: args.location ?? event.location,
+        url: args.url ?? event.url,
+        startTime: args.startTime ?? event.startTime,
+        endTime: args.endTime ?? event.endTime,
       }],
+      userId: identity.subject,
     });
   },
 });
@@ -217,6 +175,7 @@ export const deleteEvent = action({
     return await ctx.runMutation(api.calendar.mutations.syncEvents, {
       calendarId: event.calendarId,
       events: [],
+      userId: identity.subject,
     });
   },
 }); 

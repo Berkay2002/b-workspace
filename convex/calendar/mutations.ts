@@ -32,16 +32,24 @@ export const addEvents = mutation({
         endTime: v.number(),
         location: v.optional(v.string()),
         url: v.optional(v.string()),
-        userId: v.string(),
       })
     ),
+    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const now = Date.now();
     const eventIds = await Promise.all(
       args.events.map((event) =>
         ctx.db.insert("events", {
-          ...event,
+          title: event.title,
+          description: event.description,
+          startTime: event.startTime,
+          endTime: event.endTime,
+          location: event.location,
+          url: event.url,
           calendarId: args.calendarId,
+          userId: args.userId,
+          lastSynced: now,
         })
       )
     );
@@ -61,9 +69,9 @@ export const syncEvents = mutation({
         endTime: v.number(),
         location: v.optional(v.string()),
         url: v.optional(v.string()),
-        userId: v.string(),
       })
     ),
+    userId: v.string(),
   },
   handler: async (ctx, args) => {
     // Delete old events
@@ -75,21 +83,42 @@ export const syncEvents = mutation({
         Promise.all(events.map((event) => ctx.db.delete(event._id)))
       );
 
+    const now = Date.now();
+
     // Add new events
     const eventIds = await Promise.all(
       args.events.map((event) =>
         ctx.db.insert("events", {
-          ...event,
+          title: event.title,
+          description: event.description,
+          startTime: event.startTime,
+          endTime: event.endTime,
+          location: event.location,
+          url: event.url,
           calendarId: args.calendarId,
+          userId: args.userId,
+          lastSynced: now,
         })
       )
     );
 
     // Update last synced time
     await ctx.db.patch(args.calendarId, {
-      lastSynced: Date.now(),
+      lastSynced: now,
     });
 
     return eventIds;
   },
 }); 
+
+export const updateCalendarColor = mutation({
+  args: {
+    calendarId: v.id("calendars"),
+    color: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.calendarId, {
+      color: args.color,
+    });
+  },
+});

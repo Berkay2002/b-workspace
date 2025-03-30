@@ -107,4 +107,53 @@ export const getEvent = query({
 
     return event;
   },
+});
+
+export const getEventsForDateRange = query({
+  args: {
+    startDate: v.number(),
+    endDate: v.number(),
+  },
+  handler: async (ctx, args): Promise<EventWithCalendar[]> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return [];
+    }
+
+    const events = await ctx.db
+      .query("events")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .filter(q => 
+        q.and(
+          q.gte(q.field("startTime"), args.startDate),
+          q.lte(q.field("startTime"), args.endDate)
+        )
+      )
+      .order("asc")
+      .collect();
+
+    // Fetch calendar info for each event
+    const eventsWithCalendar = await Promise.all(
+      events.map(async (event): Promise<EventWithCalendar> => {
+        let calendarName = "Unknown Calendar";
+        let calendarColor: string | undefined = undefined;
+
+        if (event.calendarId) {
+          const calendar = await ctx.db.get(event.calendarId);
+          if (calendar) {
+            calendarName = calendar.name;
+            calendarColor = calendar.color;
+          }
+        }
+
+        return {
+          ...event,
+          calendarName,
+          calendarColor,
+        };
+      })
+    );
+
+    return eventsWithCalendar;
+  },
 }); 
