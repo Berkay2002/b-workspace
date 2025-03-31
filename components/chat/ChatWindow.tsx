@@ -3,11 +3,12 @@ import { ChatInput } from "./ChatInput";
 import { ChatThread } from "./ChatThread";
 import { SuggestedPrompts } from "./SuggestedPrompts";
 import { TypingIndicator } from "./TypingIndicator";
+import { sendChatMessage, ChatMessage as ApiChatMessage } from "@/lib/services/ai-service";
 
 interface Message {
   id: string;
   content: string;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "system";
   timestamp: string;
 }
 
@@ -27,17 +28,26 @@ export function ChatWindow() {
     setIsLoading(true);
 
     try {
-      // TODO: Implement AI response logic
-      const aiResponse: Message = {
+      // Format messages for OpenAI API
+      const chatMessages: ApiChatMessage[] = messages.concat(newMessage).map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+
+      // Get AI response
+      const aiResponse = await sendChatMessage(chatMessages);
+      
+      const formattedResponse: Message = {
         id: (Date.now() + 1).toString(),
-        content: "This is a placeholder response from the AI.",
+        content: aiResponse.content,
         role: "assistant",
         timestamp: new Date().toISOString(),
       };
 
-      setMessages((prev) => [...prev, aiResponse]);
+      setMessages((prev) => [...prev, formattedResponse]);
     } catch (error) {
       console.error("Failed to get AI response:", error);
+      // Optionally add an error message to the chat
     } finally {
       setIsLoading(false);
     }

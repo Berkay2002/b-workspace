@@ -7,7 +7,7 @@ A Notion-style productivity workspace built with Next.js, TypeScript, and modern
 - 🔐 Authentication with Clerk
 - 🎨 Modern UI with shadcn/ui and Tailwind CSS
 - 📝 Block-based document editor
-- 🤖 AI-powered assistance
+- 🤖 AI-powered assistance with OpenAI GPT-4o-mini
 - 📱 Responsive design
 - 🚀 Fast performance with Next.js App Router
 
@@ -18,7 +18,7 @@ A Notion-style productivity workspace built with Next.js, TypeScript, and modern
 - **Component Library:** shadcn/ui
 - **Icons:** Lucide
 - **Animations:** Framer Motion
-- **AI Integration:** OpenAI API
+- **AI Integration:** OpenAI API (GPT-4o-mini)
 - **Authentication:** Clerk
 - **Database:** Convex
 
@@ -30,10 +30,10 @@ A Notion-style productivity workspace built with Next.js, TypeScript, and modern
    npm install
    ```
 3. Copy `.env.local.example` to `.env.local` and fill in your environment variables:
-   - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
-   - `CLERK_SECRET_KEY`
-   - `OPENAI_API_KEY`
-   - `NEXT_PUBLIC_CONVEX_URL`
+   - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` - Get from [Clerk Dashboard](https://dashboard.clerk.dev/)
+   - `CLERK_SECRET_KEY` - Get from [Clerk Dashboard](https://dashboard.clerk.dev/)
+   - `OPENAI_API_KEY` - Get from [OpenAI API Keys](https://platform.openai.com/api-keys)
+   - `NEXT_PUBLIC_CONVEX_URL` - Get from [Convex Dashboard](https://dashboard.convex.dev/)
 
 4. Run the development server:
    ```bash
@@ -41,6 +41,16 @@ A Notion-style productivity workspace built with Next.js, TypeScript, and modern
    ```
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+## OpenAI Integration
+
+This project uses OpenAI's GPT-4o-mini model to power the AI assistant. This provides a good balance between capability and cost-efficiency. To use this feature:
+
+1. Create an account at [OpenAI](https://platform.openai.com/signup)
+2. Generate an API key at [API Keys](https://platform.openai.com/api-keys)
+3. Add the API key to your `.env.local` file as `OPENAI_API_KEY`
+
+The AI assistant can help with writing, planning, brainstorming, and other productivity tasks, using Notion-like capabilities and instructions.
 
 ## Project Structure
 

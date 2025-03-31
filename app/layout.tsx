@@ -4,6 +4,7 @@ import { SearchProvider } from "@/components/search/SearchProvider";
 import { ConvexProvider } from "@/components/providers/ConvexProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { ToasterProvider } from "@/components/providers/ToasterProvider";
+import { DocumentProvider } from "@/lib/context/DocumentContext";
 
 import "./globals.css";
 
@@ -22,12 +23,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ThemeProvider>
             <ConvexProvider>
               <SearchProvider>
-                <div className="h-full bg-background text-foreground transition-colors duration-300 ease-in-out">
-                  <main className="h-full">
-                    {children}
-                  </main>
-                </div>
-                <ToasterProvider />
+                <DocumentProvider>
+                  <div className="h-full bg-background text-foreground transition-colors duration-300 ease-in-out">
+                    <main className="h-full">
+                      {children}
+                    </main>
+                  </div>
+                  <ToasterProvider />
+                </DocumentProvider>
               </SearchProvider>
             </ConvexProvider>
           </ThemeProvider>
