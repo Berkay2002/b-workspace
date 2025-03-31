@@ -8,18 +8,18 @@ export default defineSchema({
     email: v.string(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }),
+  }).index("by_clerkId", ["clerkId"]),
   pages: defineTable({
     title: v.string(),
+    content: v.string(),
     description: v.optional(v.string()),
     coverImage: v.optional(v.string()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-    userId: v.string(), // From Clerk
     icon: v.optional(v.string()),
     isFavorite: v.boolean(),
-    content: v.optional(v.string()),
-  }),
+    userId: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_userId", ["userId"]),
   pageVisits: defineTable({
     pageId: v.id("pages"),
     userId: v.string(), // From Clerk
@@ -55,4 +55,13 @@ export default defineSchema({
       alignment: v.optional(v.string()),
     })),
   }),
+  calendarEvents: defineTable({
+    title: v.string(),
+    startTime: v.string(),
+    endTime: v.string(),
+    description: v.optional(v.string()),
+    userId: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_userId", ["userId"]),
 });

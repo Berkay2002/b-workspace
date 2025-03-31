@@ -46,8 +46,10 @@ export const saveStorageId = mutation({
       throw new Error("Failed to get URL for uploaded file");
     }
 
+    // Now we can use coverImage directly as it's in the schema
     await ctx.db.patch(args.pageId, {
       coverImage: url,
+      updatedAt: Date.now(),
     });
 
     return url;

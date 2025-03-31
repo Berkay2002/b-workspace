@@ -2,9 +2,15 @@
 
 import * as React from "react";
 import { Textarea } from "@/components/ui/textarea";
-import { Database, Paperclip, AtSign, FileText, X, Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { Database, Paperclip, AtSign, FileText, X, ChevronDown, ChevronUp, Calendar } from "lucide-react";
 import { useDocuments } from "@/lib/context/DocumentContext";
-import { nanoid } from "nanoid";
+import { useCalendar } from "@/lib/hooks/use-calendar";
+import { usePages } from "@/lib/hooks/use-pages";
+import { MentionDropdown } from "./mention/MentionDropdown";
+import type { MentionOption } from "./mention/MentionDropdown";
+import { ContextPanel } from "./context/ContextPanel";
+import { CalendarSettings } from "./settings/CalendarSettings";
+import { getCaretCoordinates, adjustPositionToViewport } from "./utils/cursorUtils";
 
 interface AiPromptInputProps {
   onSubmit?: (prompt: string) => void;
@@ -21,10 +27,97 @@ export function AiPromptInput({
 }: AiPromptInputProps) {
   const [prompt, setPrompt] = React.useState("");
   const [showContextPanel, setShowContextPanel] = React.useState(false);
-  const [title, setTitle] = React.useState("");
-  const [content, setContent] = React.useState("");
-  const [type, setType] = React.useState<"note" | "task" | "page" | "meeting">("note");
+  const [showSettingsPanel, setShowSettingsPanel] = React.useState(false);
+  const [showMentions, setShowMentions] = React.useState(false);
+  const [mentionPosition, setMentionPosition] = React.useState({ top: 0, left: 0 });
+  const [mentionSearch, setMentionSearch] = React.useState("");
+  const [cursorPosition, setCursorPosition] = React.useState(0);
+
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const mentionDropdownRef = React.useRef<HTMLDivElement>(null);
+
   const documents = useDocuments();
+  const { events, calendarEnabled, toggleCalendarAccess } = useCalendar();
+  const { pages } = usePages();
+
+  const showMentionDropdown = (position: number, search: string = "") => {
+    if (!textareaRef.current) return;
+
+    const caretCoords = getCaretCoordinates(textareaRef.current, position);
+    const textareaRect = textareaRef.current.getBoundingClientRect();
+    const dropdownTop = textareaRect.top + caretCoords.top + 24;
+    const dropdownLeft = textareaRect.left + caretCoords.left;
+
+    const adjustedPosition = adjustPositionToViewport(
+      { top: dropdownTop, left: dropdownLeft },
+      280,
+      250
+    );
+
+    setMentionPosition(adjustedPosition);
+    setMentionSearch(search);
+    setShowMentions(true);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    const position = e.target.selectionStart || 0;
+    const beforeCursor = value.slice(0, position);
+
+    setPrompt(value);
+    setCursorPosition(position);
+
+    const mentionMatch = beforeCursor.match(/@(\w*)$/);
+    if (mentionMatch && textareaRef.current) {
+      const search = mentionMatch[1] || "";
+      showMentionDropdown(position - search.length - 1, search);
+    } else {
+      setShowMentions(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (showMentions && mentionDropdownRef.current) {
+      const dropdown = mentionDropdownRef.current;
+      const dropdownRect = dropdown.getBoundingClientRect();
+
+      const viewportHeight = window.innerHeight;
+      const viewportWidth = window.innerWidth;
+
+      let needsAdjustment = false;
+      let newTop = mentionPosition.top;
+      let newLeft = mentionPosition.left;
+
+      if (dropdownRect.bottom > viewportHeight) {
+        newTop = mentionPosition.top - dropdownRect.height - 30;
+        needsAdjustment = true;
+      }
+
+      if (dropdownRect.right > viewportWidth) {
+        newLeft = viewportWidth - dropdownRect.width - 20;
+        needsAdjustment = true;
+      }
+
+      if (needsAdjustment) {
+        setMentionPosition({ top: newTop, left: newLeft });
+      }
+    }
+  }, [showMentions, mentionPosition]);
+
+  const handleMentionSelect = (option: MentionOption) => {
+    const beforeMention = prompt.slice(0, cursorPosition).replace(/@\\w*$/, '');
+    const afterMention = prompt.slice(cursorPosition);
+    const newPrompt = beforeMention + option.value + ' ' + afterMention;
+
+    setPrompt(newPrompt);
+    setShowMentions(false);
+
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+      const newPosition = beforeMention.length + option.value.length + 1;
+      textareaRef.current.setSelectionRange(newPosition, newPosition);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,57 +127,46 @@ export function AiPromptInput({
     setPrompt("");
   };
 
-  const handleAddDocument = () => {
-    if (!documents || !title.trim() || !content.trim()) return;
-    
-    const document = {
-      id: nanoid(),
-      title: title.trim(),
-      content: content.trim(),
-      type,
-      lastUpdated: new Date()
-    };
-    
-    documents.addDocument(document);
-    documents.setCurrentContext(document.id);
-    
-    // Reset form
-    setTitle("");
-    setContent("");
-    setShowContextPanel(false);
-  };
-
-  const handleSelectDocument = (id: string) => {
-    if (!documents) return;
-    documents.setCurrentContext(id);
-  };
-
   const handleClearContext = () => {
     if (!documents) return;
     documents.setCurrentContext(null);
-  };
-
-  const handleToggleContext = () => {
-    if (onToggleContext) {
-      onToggleContext(!contextEnabled);
-    }
   };
 
   const getCurrentDocumentTitle = () => {
     if (!documents) return null;
     const context = documents.getCurrentContext();
     if (!context) return null;
-    
+
     const doc = documents.documents.find(d => context.startsWith(d.title));
     return doc?.title || null;
   };
 
   const activeDocument = getCurrentDocumentTitle();
 
+  const handleAtButtonClick = () => {
+    if (!textareaRef.current) return;
+
+    const position = textareaRef.current.selectionStart || 0;
+    const beforeCursor = prompt.slice(0, position);
+    const afterCursor = prompt.slice(position);
+    const newPrompt = beforeCursor + '@' + afterCursor;
+
+    setPrompt(newPrompt);
+
+    const newPosition = position + 1;
+    textareaRef.current.focus();
+
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.setSelectionRange(newPosition, newPosition);
+        showMentionDropdown(newPosition - 1);
+      }
+    }, 10);
+  };
+
   return (
     <form onSubmit={handleSubmit} className="w-full">
       <div className="relative rounded-xl border border-muted bg-background shadow-sm">
-        {/* Context indicator */}
         {documents && contextEnabled && activeDocument && (
           <div className="flex items-center px-4 pt-3 pb-1">
             <div className="text-xs bg-primary/10 text-primary rounded-full px-2 py-0.5 flex items-center">
@@ -102,12 +184,25 @@ export function AiPromptInput({
         )}
 
         <Textarea
+          ref={textareaRef}
           placeholder="Ask AI anything..."
           value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
+          onChange={handleInputChange}
           className={`min-h-[100px] resize-none border-0 bg-transparent px-4 ${activeDocument ? 'pt-2' : 'pt-4'} focus-visible:ring-0`}
           disabled={isLoading}
         />
+
+        {showMentions && (
+          <MentionDropdown
+            ref={mentionDropdownRef}
+            position={mentionPosition}
+            mentionSearch={mentionSearch}
+            pages={pages}
+            events={events}
+            calendarEnabled={calendarEnabled}
+            onSelect={handleMentionSelect}
+          />
+        )}
 
         <div className="flex items-center justify-between border-t px-4 py-2">
           <div className="flex items-center gap-2 text-muted-foreground">
@@ -122,11 +217,26 @@ export function AiPromptInput({
                 {showContextPanel ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
               </button>
             )}
+            <button 
+              type="button" 
+              className="text-xs flex items-center gap-1 border rounded-md px-2 py-1 hover:bg-muted transition-colors"
+              onClick={() => setShowSettingsPanel(!showSettingsPanel)}
+            >
+              <Calendar className="w-3 h-3" /> 
+              {calendarEnabled ? 'Calendar On' : 'Calendar Off'}
+              {showSettingsPanel ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            </button>
             <button type="button" className="text-sm flex items-center gap-1">
               <Database className="w-4 h-4" /> All sources
             </button>
             <Paperclip className="w-4 h-4" />
-            <AtSign className="w-4 h-4" />
+            <button 
+              type="button" 
+              className="text-sm flex items-center gap-1 hover:text-foreground transition-colors"
+              onClick={handleAtButtonClick}
+            >
+              <AtSign className="w-4 h-4" />
+            </button>
           </div>
           <button
             type="submit"
@@ -155,93 +265,20 @@ export function AiPromptInput({
           </button>
         </div>
 
-        {/* Context panel */}
-        {showContextPanel && documents && (
-          <div className="absolute left-0 bottom-full w-full bg-background border rounded-t-md rounded-b-none border-b-0 shadow-lg z-10 p-3">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-xs font-medium">Document Contexts</h3>
-              <button 
-                type="button"
-                onClick={() => setShowContextPanel(false)} 
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+        {showSettingsPanel && (
+          <CalendarSettings
+            calendarEnabled={calendarEnabled}
+            onToggleCalendarAccess={toggleCalendarAccess}
+            onClose={() => setShowSettingsPanel(false)}
+          />
+        )}
 
-            <div className="flex items-center mb-2">
-              <label className="text-xs flex items-center gap-1">
-                <input
-                  type="checkbox"
-                  checked={contextEnabled}
-                  onChange={handleToggleContext}
-                  className="h-3 w-3"
-                />
-                <span className="text-muted-foreground">Enable context</span>
-              </label>
-            </div>
-
-            {documents.documents.length > 0 && (
-              <div className="mb-3">
-                <div className="text-xs text-muted-foreground mb-1">Available contexts:</div>
-                <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
-                  {documents.documents.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className={`p-1.5 text-xs rounded cursor-pointer flex justify-between items-center ${
-                        documents.getCurrentContext()?.startsWith(doc.title)
-                          ? "bg-primary/10 font-medium"
-                          : "hover:bg-muted/50"
-                      }`}
-                      onClick={() => handleSelectDocument(doc.id)}
-                    >
-                      <div className="flex items-center">
-                        <div className="font-medium">{doc.title}</div>
-                        <div className="text-muted-foreground text-[10px] ml-2 px-1 bg-muted/50 rounded">{doc.type}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-1.5">
-              <div className="text-xs text-muted-foreground">Add new context:</div>
-              <div className="flex gap-1.5">
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Title"
-                  className="flex-1 px-2 py-1 text-xs border rounded"
-                />
-                <select
-                  value={type}
-                  onChange={(e) => setType(e.target.value as "note" | "task" | "page" | "meeting")}
-                  className="px-2 py-1 text-xs border rounded"
-                >
-                  <option value="note">Note</option>
-                  <option value="task">Task</option>
-                  <option value="page">Page</option>
-                  <option value="meeting">Meeting</option>
-                </select>
-              </div>
-              <textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Content"
-                className="w-full px-2 py-1 text-xs border rounded h-16 resize-none"
-              />
-              <button
-                type="button"
-                onClick={handleAddDocument}
-                disabled={!title.trim() || !content.trim()}
-                className="w-full flex items-center justify-center py-1 text-xs bg-primary text-primary-foreground rounded disabled:opacity-50"
-              >
-                <Plus className="w-3 h-3 mr-1" /> Add Document
-              </button>
-            </div>
-          </div>
+        {showContextPanel && (
+          <ContextPanel
+            contextEnabled={contextEnabled}
+            onToggleContext={onToggleContext || (() => {})}
+            onClose={() => setShowContextPanel(false)}
+          />
         )}
       </div>
     </form>

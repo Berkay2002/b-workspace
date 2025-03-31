@@ -17,7 +17,10 @@ export const create = mutation({
       userId: args.userId,
       createdAt: Date.now(),
       updatedAt: Date.now(),
+      content: "", // Initialize with empty content
+      description: "",
       isFavorite: false,
+      icon: "",
     });
 
     return pageId;
@@ -26,18 +29,24 @@ export const create = mutation({
 
 export const list = query({
   args: {
-    userId: v.string(),
+    userId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Unauthorized");
+      return [];
     }
 
-    return await ctx.db
+    // Use provided userId if available, otherwise use the current user's ID
+    const userId = args.userId || identity.subject;
+    
+    const pages = await ctx.db
       .query("pages")
-      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .order("desc")
       .collect();
+    
+    return pages;
   },
 });
 
@@ -59,11 +68,11 @@ export const update = mutation({
   args: {
     id: v.id("pages"),
     title: v.optional(v.string()),
+    content: v.optional(v.string()),
     description: v.optional(v.string()),
     coverImage: v.optional(v.string()),
     icon: v.optional(v.string()),
     isFavorite: v.optional(v.boolean()),
-    content: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
